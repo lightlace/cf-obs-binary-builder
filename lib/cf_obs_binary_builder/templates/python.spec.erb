@@ -42,11 +42,14 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 %prep
 %setup -q -n Python-%{version}
 
+mkdir -p %{destdir}/usr/lib64
+cp /usr/lib64/libtk8.6.so /usr/lib64/libXss.so.1* /usr/lib64/libtcl8.6.so %{destdir}/usr/lib64/
+
 %build
 # Fix ncurses panel issue
 sed -i 's|#include <panel.h>|#include <ncurses/panel.h>|g' Modules/_curses_panel.c
 
-./configure --enable-shared -with-ensurepip=no --with-dbmliborder=bdb:gdbm --prefix=%{destdir} --enable-unicode=ucs4
+./configure --enable-shared -with-ensurepip=no --with-dbmliborder=bdb:gdbm --with-tcltk-includes="-I/usr/include/tcl8.6" --with-tcltk-libs="-L/usr/lib64 -ltcl8.6 -L/usr/lib64 -ltk8.6" --prefix=%{destdir} --enable-unicode=ucs4
 make %{?_smp_mflags}
 
 %install
