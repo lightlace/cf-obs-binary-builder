@@ -55,6 +55,7 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 <%= rpm_macros %>
 
 %define prefix_path /php
+%define dependencydir %{destdir}%{prefix_path}
 
 %description
 
@@ -63,7 +64,7 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 
 %build
 
-./configure --prefix=%{destdir}%{prefix_path} \
+./configure --prefix=%{dependencydir} \
       --disable-static \
       --enable-shared \
       --enable-ftp=shared \
@@ -126,14 +127,33 @@ make install
 
 TARBALL=%{otherdir}/%{name}-linux-x64.tgz
 
-pushd %{destdir}%{prefix_path}
+pushd %{dependencydir}
 cp %{SOURCE1} ../
+
+#cp -a #{@hiredis_path}/lib/libhiredis.so* %{dependencydir}/lib/
+##cp #{@ioncube_path}/ioncube/ioncube_loader_lin_#{major_version}.so #{zts_path}/ioncube.so
+#cp -a #{@libmemcached_path}/lib/libmemcached.so* %{dependencydir}/lib/
+#cp -a #{@libmemcached_path}/lib/libmemcachedutil.so* %{dependencydir}/lib/
+cp -a /usr/lib64/libc-client.so* %{dependencydir}/lib/
+cp -a /usr/lib64/libmcrypt.so* %{dependencydir}/lib
+cp -a /usr/lib64/libaspell.so* %{dependencydir}/lib
+cp -a /usr/lib64/libpspell.so* %{dependencydir}/lib
+cp -a /usr/lib64//libgearman.so* %{dependencydir}/lib
+#cp -a /usr/local/lib64/libcassandra.so* %{dependencydir}/lib
+cp -a /usr/lib64/libuv.so* %{dependencydir}/lib
+#cp -a /usr/local/lib64/librabbitmq.so* %{dependencydir}/lib/
+cp -a /usr/lib64/libsybdb.so* %{dependencydir}/lib/
+#cp -a /usr/lib/librdkafka.so* %{dependencydir}/lib
+cp -a /usr/lib64/libGeoIP.so* %{dependencydir}/lib/
+# Add SNMP Recipe with copying stuff
+
 rm "etc/php-fpm.conf.default"
 rm -rf "include"
 rm -rf "php"
 rm -rf "lib/php/build"
 rm "bin/php-cgi"
 find "lib/php/extensions" -name "*.a" -type f -delete
+
 cd ..
 tar czf ${TARBALL} --hard-dereference * --owner=0 --group=0
 popd
