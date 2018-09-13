@@ -109,7 +109,7 @@ rm -rf "lib/php/build"
 rm "bin/php-cgi"
 find "lib/php/extensions" -name "*.a" -type f -delete
 cd ..
-tar czf ${TARBALL} * --owner=0 --group=0
+tar czf ${TARBALL} --hard-dereference * --owner=0 --group=0
 popd
 
 CHECKSUM=`sha256sum ${TARBALL}`
