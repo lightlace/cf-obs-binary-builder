@@ -1,0 +1,370 @@
+#
+# spec file for SUSE CAP buildpack dependency
+#
+# Copyright (c) 2018 SUSE LINUX GmbH, Nuernberg, Germany.
+#
+# All modifications and additions to the file contributed by third parties
+# remain the property of their copyright owners, unless otherwise agreed
+# upon. The license for this file, and modifications and additions to the
+# file, is the same license as for the pristine package itself (unless the
+# license for the pristine package is not an Open Source License, in which
+# case the license is the MIT License). An "Open Source License" is a
+# license that conforms to the Open Source Definition (Version 1.9)
+# published by the Open Source Initiative.
+
+
+
+Name:           php-<%= version %>
+Version:        <%= version %>
+Release:        1
+Summary:        This is a dependency used in SUSE CAP buildpacks
+License:        PHP-3.01
+Group:          Cloud/Platform/scf
+Url:            http://php.net/
+Source0:        <%= source %>
+Source1:        sources.yml
+BuildRequires:  aspell-devel
+BuildRequires:  libexpat-devel
+BuildRequires:  gdbm-devel
+BuildRequires:  gmp-devel
+BuildRequires:  openldap2-devel
+BuildRequires:  libldb-devel
+BuildRequires:  libmcrypt-devel
+BuildRequires:  libpng12-devel
+BuildRequires:  libpng12-compat-devel
+BuildRequires:  libpspell15
+BuildRequires:  readline-devel
+BuildRequires:  sqlite3-devel
+BuildRequires:  libopenssl-devel
+BuildRequires:  libuv-devel
+BuildRequires:  libxml2-devel
+BuildRequires:  libzip-devel
+BuildRequires:  automake
+BuildRequires:  freetype2-devel
+BuildRequires:  libxslt-devel
+BuildRequires:  libGeoIP-devel
+BuildRequires:  ImageMagick-devel
+BuildRequires:  cyrus-sasl-devel
+BuildRequires:  imap-devel
+BuildRequires:  krb5-devel
+BuildRequires:  net-snmp-devel
+BuildRequires:  libgpgme-devel
+#BuildRequires:  php<%= version[0,1] %>-devel
+BuildRequires:  re2c
+BuildRequires: 	libevent-devel
+BuildRoot:      %{_tmppath}/%{name}-%{version}-build
+
+# BEGIN shared macros for all dependency packages
+BuildRequires: aaa_stack_build_requires
+
+%if 0%{?is_opensuse}
+%define stack opensuse42
+%else
+%define stack sle12
+%endif
+
+%define otherdir %{_topdir}/OTHER
+%define prefix_path /app/vendor/%{name}
+%define destdir /tmp/%{name}/
+%define dependencydir %{destdir}/%{prefix_path}
+%define phpize %{dependencydir}/bin/phpize
+# END shared macros
+
+
+%define prefix_path /php
+%define dependencydir %{destdir}%{prefix_path}
+
+%description
+
+%prep
+%setup -q -n %{name}
+
+%build
+
+
+
+function build_extension {
+  TEMPDIR=$(mktemp -d)
+  pushd $TEMPDIR
+
+  tar -xf "$1"
+	BUILD_DIR=$(find * -maxdepth 0 -type d)
+  pushd $BUILD_DIR
+		if [[ $(basename $BUILD_DIR) == amqp* ]]; then
+      %{phpize}
+      build_amqp $1
+		elif [[ $(basename $BUILD_DIR) == cassandra* ]]; then
+      %{phpize}
+      build_cassandra $1
+		elif [[ $(basename $BUILD_DIR) == cphalcon* ]]; then
+			build_cphalcon $1
+		elif [[ $(basename $BUILD_DIR) == hiredis* ]]; then
+			build_hiredis $1
+		elif [[ $(basename $BUILD_DIR) == ioncube ]]; then
+			build_ioncube
+		elif [[ $(basename $BUILD_DIR) == librdkafka* ]]; then
+			build_librdkafka $1
+		elif [[ $(basename $BUILD_DIR) == lua-1* ]]; then
+      %{phpize}
+			build_lua $1
+		elif [[ $(basename $BUILD_DIR) == lua-5* ]]; then
+			build_lua_interpreter $1
+		elif [[ $(basename $BUILD_DIR) == memcached* ]]; then
+      %{phpize}
+			build_memcached $1
+		elif [[ $(basename $BUILD_DIR) == phpiredis* ]]; then
+      %{phpize}
+			build_with_hiredis $1
+		elif [[ $(basename $BUILD_DIR) == rdkaf* ]]; then
+      %{phpize}
+			build_rdkafka $1
+		elif [[ $(basename $BUILD_DIR) == xhprof* ]]; then
+			pushd extension
+      %{phpize}
+			build $1
+			popd
+		elif [[ $(basename $BUILD_DIR) == Twig* ]]; then
+			pushd ext/twig
+      %{phpize}
+			build $1
+			popd
+		else
+    	if [[ -e "cmake" ]]; then
+      	build_cmake "$1"
+    	elif [[ -f "config.m4" ]]; then
+      	if [[ $(autoconf config.m4) != 0 ]]; then
+          %{phpize}
+				fi
+				build "$1"
+    	else
+      	build "$1"
+    	fi
+		fi
+  popd
+  popd
+  rm -r "$TEMPDIR"
+}
+
+function build {
+  ./configure \
+		--with-php-config=%{dependencydir}/bin/php-config \
+		--prefix=%{dependencydir}
+  make %{?_smp_mflags}
+  make install
+}
+
+function build_amqp {
+  cp %{dependencydir}/lib64/librabb* %{dependencydir}/lib/
+  cp %{dependencydir}/lib64/pkgconfig/* %{dependencydir}/lib/pkgconfig/
+  ./configure \
+    --with-php-config=%{dependencydir}/bin/php-config \
+    --with-amqp --with-librabbitmq-dir=%{dependencydir} \
+    --prefix=%{dependencydir}
+  make %{?_smp_mflags}
+  make install
+}
+
+function build_cassandra {
+  export CXXFLAGS="-L%{dependencydir}/lib64/"
+  ./configure --with-cassandra=%{dependencydir}/ \
+    --with-php-config=%{dependencydir}/bin/php-config \
+    --prefix=%{dependencydir}
+  make %{?_smp_mflags}
+  make install
+  unset CXXFLAGS
+}
+
+function build_cphalcon {
+	pushd build
+	./install --php-config %{dependencydir}/bin/php-config 
+	popd
+}
+
+function build_hiredis {
+	export PREFIX=%{dependencydir}/hiredis/
+	mkdir -p %{dependencydir}/hiredis/
+	make %{?_smp_mflags}
+	make install
+}
+
+function build_ioncube {
+  # TODO: fix hardcoded php version in iconcube filename
+  # TODO: fix hardcoded target extension folder
+  cp ioncube_loader_lin_<%= version[0,2] %>-.so %{dependencydir}/lib/php/extensions/no-debug-non-zts-20131226/ioncube.so
+}
+
+function build_librdkafka {
+	./configure --prefix=%{dependencydir}
+  make %{?_smp_mflags}
+  make install
+}
+
+function build_lua {
+  ./configure \
+		--with-php-config=%{dependencydir}/bin/php-config \
+		--prefix=%{dependencydir} \
+		--with-lua=%{dependencydir}/lua/
+  make %{?_smp_mflags}
+  make install
+}
+
+function build_lua_interpreter {
+  sed -i 's|INSTALL_TOP=.*|INSTALL_TOP= /tmp/php-<%= version %>/php/lua/|g' Makefile
+	make linux %{?_smp_mflags} MYCFLAGS="-fPIC"  && make install
+}
+
+function build_memcached {
+  ./configure \
+		--with-php-config=%{dependencydir}/bin/php-config \
+		--prefix=%{dependencydir} \
+		--with-libmemcached-dir=%{dependencydir}
+  make %{?_smp_mflags}
+  make install
+}
+
+function build_with_hiredis {
+	export CXXFLAGS="-I%{dependencydir}/hiredis/include/ -L%{dependencydir}/hiredis/lib/ -llibhiredis"
+  ./configure \
+  --enable-phpiredis \
+  --with-hiredis-dir=%{dependencydir}/hiredis/ \
+  --with-php-config=%{dependencydir}/bin/php-config \
+  --prefix=%{dependencydir}
+  make %{?_smp_mflags}
+  make install
+  unset CXXFLAGS
+}
+
+function build_rdkafka {
+  sed -i 's|.*SEARCH_PATH="\(.*\)"|SEARCH_PATH="/tmp/php-<%= version %>/php/lua/ \1"|g' configure
+	export CXXFLAGS="-I%{dependencydir}/include/librdkafka/ -L%{dependencydir}/lib/ -librdkafka -lz -lpthread -lrt"
+  ./configure \
+		--with-php-config=%{dependencydir}/bin/php-config \
+		--prefix=%{dependencydir}
+  make %{?_smp_mflags}
+  make install
+  unset CXXFLAGS
+}
+
+
+function build_cmake {
+  cmake .
+  cmake --build .
+  cmake -DCMAKE_INSTALL_PREFIX=%{dependencydir} .
+  cmake --build . --target install
+}
+
+SOURCES_DIR=$(dirname %{SOURCE0})
+
+./configure --prefix=%{dependencydir} \
+      --disable-static \
+      --enable-shared \
+      --enable-ftp=shared \
+      --enable-sockets=shared \
+      --enable-soap=shared \
+      --enable-fileinfo=shared \
+      --enable-bcmath \
+      --enable-calendar \
+      --enable-intl \
+      --with-kerberos \
+      --enable-zip=shared \
+      --with-bz2=shared \
+      --with-curl=shared \
+      --enable-dba=shared \
+      --with-cdb \
+      --with-gdbm \
+      --with-mcrypt=shared \
+      --with-mhash=shared \
+      --with-mysql=shared \
+      --with-mysqli=shared \
+      --enable-pdo=shared \
+      --with-pdo-sqlite=shared,/usr \
+      --with-pdo-mysql=shared,mysqlnd \
+      --with-mssql=shared \
+      --with-pdo-dblib=shared \
+      --with-gd=shared \
+      --with-jpeg-dir=/usr \
+      --with-freetype-dir=/usr \
+      --enable-gd-native-ttf \
+      --with-pdo-pgsql=shared \
+      --with-pgsql=shared \
+      --with-pspell=shared \
+      --with-gettext=shared \
+      --with-gmp=shared \
+      --with-imap=shared \
+      --with-imap-ssl=shared \
+      --with-ldap=shared \
+      --with-ldap-sasl \
+      --with-zlib=shared \
+      --with-xsl=shared \
+      --with-snmp=shared \
+      --enable-mbstring=shared \
+      --enable-mbregex \
+      --enable-exif=shared \
+      --with-openssl=shared \
+      --enable-fpm \
+      --enable-pcntl=shared \
+      --with-readline=shared \
+      --enable-sysvsem=shared \
+      --enable-sysvshm=shared \
+      --enable-sysvmsg=shared \
+      --enable-shmop=shared \
+      --with-libdir=lib64
+
+make %{?_smp_mflags}
+make install
+
+pushd $SOURCES_DIR
+  for TARBALL in $(echo -e "lua-5.3.5.tar.gz\nlibmemcached-1.0.18.tar.gz\nhiredis-0.13.3.tar.gz\nlibrdkafka-0.9.4.tar.gz\nrabbitmq-0.8.0.tar.gz\n$(ls |grep -v rabbitmq | grep -v librdkafka| grep -v lua-5.3.5.tar.gz |grep -v libmemcached-1.0.18.tar.gz|sort -r)"); do
+    if [[ $TARBALL !=  $(basename %{SOURCE0}) && $TARBALL != "sources.yml" &&
+         $TARBALL != "php.spec" ]]; then
+      build_extension $SOURCES_DIR/$TARBALL
+    fi
+  done
+popd 
+
+%install
+make install
+
+TARBALL=%{otherdir}/%{name}-linux-x64.tgz
+
+pushd %{dependencydir}
+cp %{SOURCE1} ../
+
+#cp -a #{@hiredis_path}/lib/libhiredis.so* %{dependencydir}/lib/
+##cp #{@ioncube_path}/ioncube/ioncube_loader_lin_#{major_version}.so #{zts_path}/ioncube.so
+#cp -a #{@libmemcached_path}/lib/libmemcached.so* %{dependencydir}/lib/
+#cp -a #{@libmemcached_path}/lib/libmemcachedutil.so* %{dependencydir}/lib/
+cp -a /usr/lib64/libc-client.so* %{dependencydir}/lib/
+cp -a /usr/lib64/libmcrypt.so* %{dependencydir}/lib
+cp -a /usr/lib64/libaspell.so* %{dependencydir}/lib
+cp -a /usr/lib64/libpspell.so* %{dependencydir}/lib
+cp -a /usr/lib64//libgearman.so* %{dependencydir}/lib
+#cp -a /usr/local/lib64/libcassandra.so* %{dependencydir}/lib
+cp -a /usr/lib64/libuv.so* %{dependencydir}/lib
+#cp -a /usr/local/lib64/librabbitmq.so* %{dependencydir}/lib/
+cp -a /usr/lib64/libsybdb.so* %{dependencydir}/lib/
+#cp -a /usr/lib/librdkafka.so* %{dependencydir}/lib
+cp -a /usr/lib64/libGeoIP.so* %{dependencydir}/lib/
+# Add SNMP Recipe with copying stuff
+
+rm "etc/php-fpm.conf.default"
+rm -rf "include"
+rm -rf "php"
+rm -rf "lib/php/build"
+rm "bin/php-cgi"
+find "lib/php/extensions" -name "*.a" -type f -delete
+
+cd ..
+tar czf ${TARBALL} --hard-dereference * --owner=0 --group=0
+popd
+
+CHECKSUM=`sha256sum ${TARBALL}`
+NEW_TARBALL=%{otherdir}/%{name}-linux-x64-%{stack}-${CHECKSUM:0:8}.tgz
+mv ${TARBALL} ${NEW_TARBALL}
+
+echo `sha256sum ${NEW_TARBALL}` > %{otherdir}/$(basename ${NEW_TARBALL}).sha256
+
+%files
+%defattr(-,root,root)
+
+%changelog

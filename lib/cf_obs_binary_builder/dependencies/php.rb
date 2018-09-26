@@ -14,7 +14,7 @@ class CfObsBinaryBuilder::Php < CfObsBinaryBuilder::BaseDependency
 
   def render_spec_template
     spec_template = File.read(
-      File.expand_path(File.dirname(__FILE__) + "/../templates/php#{@major_version}.spec.erb"))
+      File.expand_path(File.dirname(__FILE__) + "/../templates/php.spec.erb"))
     ERB.new(spec_template).result(binding)
   end
 
