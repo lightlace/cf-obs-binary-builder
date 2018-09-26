@@ -235,7 +235,7 @@ function build_with_hiredis {
 }
 
 function build_rdkafka {
-  sed -i 's|.*SEARCH_PATH="\(.*\)"|SEARCH_PATH="/tmp/php-<%= version %>/php/lua/ \1"|g' configure
+  sed -i 's|.*SEARCH_PATH="\(.*\)"|SEARCH_PATH="/tmp/php-<%= version %>/php \1"|g' configure
 	export CXXFLAGS="-I%{dependencydir}/include/librdkafka/ -L%{dependencydir}/lib/ -librdkafka -lz -lpthread -lrt"
   ./configure \
 		--with-php-config=%{dependencydir}/bin/php-config \
