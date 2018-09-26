@@ -1,0 +1,11 @@
+--- Makefile	2016-12-20 16:26:08.000000000 +0000
++++ Makefile	2018-09-21 10:53:14.271639281 +0000
+@@ -10,7 +10,7 @@
+ # so take care if INSTALL_TOP is not an absolute path. See the local target.
+ # You may want to make INSTALL_LMOD and INSTALL_CMOD consistent with
+ # LUA_ROOT, LUA_LDIR, and LUA_CDIR in luaconf.h.
+-INSTALL_TOP= /usr/local
++INSTALL_TOP= /tmp/php-5.6.36/php/lua/
+ INSTALL_BIN= $(INSTALL_TOP)/bin
+ INSTALL_INC= $(INSTALL_TOP)/include
+ INSTALL_LIB= $(INSTALL_TOP)/lib

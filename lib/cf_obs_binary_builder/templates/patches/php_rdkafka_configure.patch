@@ -1,0 +1,19 @@
+*** configure	Thu Sep 20 13:09:48 2018
+--- configure	Thu Sep 20 13:09:29 2018
+***************
+*** 3892,3898 ****
+  
+  if test "$PHP_RDKAFKA" != "no"; then
+  
+!   SEARCH_PATH="/usr/local /usr"     # you might want to change this
+    SEARCH_FOR="/include/librdkafka/rdkafka.h"  # you most likely want to change this
+    if test -r $PHP_RDKAFKA/$SEARCH_FOR; then # path given as parameter
+      RDKAFKA_DIR=$PHP_RDKAFKA
+--- 3892,3898 ----
+  
+  if test "$PHP_RDKAFKA" != "no"; then
+  
+!   SEARCH_PATH="/tmp/php-5.6.36/php /usr/local /usr"     # you might want to change this
+    SEARCH_FOR="/include/librdkafka/rdkafka.h"  # you most likely want to change this
+    if test -r $PHP_RDKAFKA/$SEARCH_FOR; then # path given as parameter
+      RDKAFKA_DIR=$PHP_RDKAFKA
